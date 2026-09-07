@@ -38,6 +38,11 @@ struct FingerTarget: Equatable {
             throw FingerTargetError.wrongScheme
         }
 
+        let rawURL = url.absoluteString.lowercased()
+        guard !rawURL.contains("%0d"), !rawURL.contains("%0a") else {
+            throw FingerTargetError.invalidRequest
+        }
+
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let componentHost = components.host,
               !componentHost.isEmpty else {
