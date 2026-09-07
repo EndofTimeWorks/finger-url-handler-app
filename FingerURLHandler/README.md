@@ -53,3 +53,8 @@ Once the app is installed, tap a `finger://...` link from another app, or invoke
 ## Protocol/security note
 
 Finger (RFC 1288) is plaintext and unauthenticated. Do not treat returned text as trusted, and do not use Finger where confidentiality or authentication is required.
+
+## Licence
+
+Copyright (C) 2026 EndofTime.Works
+Licensed under GPL-3.0-only. See [LICENSE](../LICENSE).
