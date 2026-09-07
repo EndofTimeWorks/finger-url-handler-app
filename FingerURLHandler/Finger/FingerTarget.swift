@@ -86,7 +86,11 @@ struct FingerTarget: Equatable {
             verbose = true
         }
 
-        guard !decodedRequest.contains("\r"), !decodedRequest.contains("\n") else {
+        let lowercasedRequest = decodedRequest.lowercased()
+        guard !decodedRequest.contains("\r"),
+              !decodedRequest.contains("\n"),
+              !lowercasedRequest.contains("%0d"),
+              !lowercasedRequest.contains("%0a") else {
             throw FingerTargetError.invalidRequest
         }
 

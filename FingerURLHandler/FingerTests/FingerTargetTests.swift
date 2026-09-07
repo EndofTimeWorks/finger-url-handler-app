@@ -26,6 +26,12 @@ final class FingerTargetTests: XCTestCase {
         }
     }
 
+    func testRejectsDoubleEncodedLineBreak() throws {
+        XCTAssertThrowsError(try FingerTarget(url: try XCTUnwrap(URL(string: "finger://example.com/alice%250D%250Aroot")))) { error in
+            XCTAssertEqual(error as? FingerTargetError, .invalidRequest)
+        }
+    }
+
     func testCanonicalURLPreservesIPv6PortAndVerboseRequest() throws {
         let target = FingerTarget(host: "2001:db8::1", port: 7979, request: "alice", verbose: true)
 
