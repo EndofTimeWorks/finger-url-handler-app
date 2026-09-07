@@ -1,0 +1,73 @@
+name: iOS
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-package:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select an available iPhone simulator
+        id: simulator
+        shell: bash
+        run: |
+          device_id="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ { print $2; exit }')"
+          test -n "$device_id"
+          xcrun simctl boot "$device_id" || true
+          xcrun simctl bootstatus "$device_id" -b
+          echo "id=$device_id" >> "$GITHUB_OUTPUT"
+
+      - name: Run iOS tests
+        run: >-
+          xcodebuild test
+          -project FingerURLHandler/Finger.xcodeproj
+          -scheme Finger
+          -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.id }}"
+          -derivedDataPath "$RUNNER_TEMP/DerivedData"
+
+      - name: Archive without code signing
+        run: >-
+          xcodebuild archive
+          -project FingerURLHandler/Finger.xcodeproj
+          -scheme Finger
+          -destination 'generic/platform=iOS'
+          -archivePath "$RUNNER_TEMP/Finger.xcarchive"
+          -derivedDataPath "$RUNNER_TEMP/DerivedData"
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_REQUIRED=NO
+          CODE_SIGN_IDENTITY=""
+
+      - name: Package unsigned IPA
+        shell: bash
+        run: |
+          app_path="$RUNNER_TEMP/Finger.xcarchive/Products/Applications/Finger.app"
+          package_dir="$RUNNER_TEMP/ipa"
+          test -d "$app_path"
+          mkdir -p "$package_dir/Payload"
+          cp -R "$app_path" "$package_dir/Payload/Finger.app"
+          (
+            cd "$package_dir"
+            ditto -c -k --sequesterRsrc --keepParent Payload Finger-unsigned.ipa
+          )
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Finger-unsigned-ipa
+          path: ${{ runner.temp }}/ipa/Finger-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
